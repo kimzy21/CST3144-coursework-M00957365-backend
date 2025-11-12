@@ -1,0 +1,102 @@
+[
+    {
+        "id": 1001,
+        "title": "Physics for dummies",
+        "description": "Learn all the basics and principles of Physics - Easy for beginners.",
+        "location": "London",
+        "price": 20.45,
+        "image": "Assets/physics.png",
+        "availableInventory": 5,
+        "rating": 3
+    },
+    {
+        "id": 1002,
+        "title": "Biology 101",
+        "description": "Discover the secrets of all living beings.",
+        "location": "Amsterdam",
+        "price": 49.65,
+        "image": "Assets/biology.png",
+        "availableInventory": 5,
+        "rating": 4
+    },
+    {
+        "id": 1003,
+        "title": "Calculus",
+        "description": "Maths can be fun at times!",
+        "location": "Quebec",
+        "price": 95.99,
+        "image": "Assets/maths.png",
+        "availableInventory": 5,
+        "rating": 5
+    },
+    {
+        "id": 1004,
+        "title": "Le Français",
+        "description": "Oui-oui baguette!",
+        "location": "Luxembourg",
+        "price": 55.99,
+        "image": "Assets/french.png",
+        "availableInventory": 5,
+        "rating": 4
+    },
+    {
+        "id": 1005,
+        "title": "Literature - a lost art.",
+        "description": "Dive into the fabulous world of literature.",
+        "location": "London",
+        "price": 83.99,
+        "image": "Assets/literature.png",
+        "availableInventory": 5,
+        "rating": 3
+    },
+    {
+        "id": 1006,
+        "title": "Chemistry",
+        "description": "Molotov Cocktail?",
+        "location": "Paris",
+        "price": 62.99,
+        "image": "Assets/chemistry.png",
+        "availableInventory": 5,
+        "rating": 2
+    },
+    {
+        "id": 1007,
+        "title": "Art",
+        "description": "Paint",
+        "location": "Australia",
+        "price": 75.99,
+        "image": "Assets/art.png",
+        "availableInventory": 5,
+        "rating": 4
+    },
+    {
+        "id": 1008,
+        "title": "English Language",
+        "description": "Tomato, To-mah-to",
+        "location": "England",
+        "price": 100.00,
+        "image": "Assets/english.png",
+        "availableInventory": 5,
+        "rating": 3
+    },
+    {
+        "id": 1009,
+        "title": "Food Studies",
+        "description": "What's for dinner?",
+        "location": "Washington DC",
+        "price": 55.95,
+        "image": "Assets/food.png",
+        "availableInventory": 5,
+        "rating": 5
+    },
+    {
+        "id": 1010,
+        "title": "Fashion & Couture",
+        "description": "MK, YSL, GUCCI?",
+        "location": "Barcelona",
+        "price": 154.55,
+        "image": "Assets/fashion.png",
+        "availableInventory": 5,
+        "rating": 4
+    }
+]
