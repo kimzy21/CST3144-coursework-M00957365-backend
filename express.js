@@ -6,65 +6,99 @@ let app = express();
 
 app.use(cors());
 
+// Serve frontend folder
+app.use(express.static(path.join(__dirname, "../CST3144-coursework-M00957365")));
+
+
 // Middleware to parse JSON bodies
 app.use(express.json());
 
-app.use("/image", express.static(path.join(__dirname, "image")));
+app.use("/Assets", express.static(path.join(__dirname, "Assets")));
 
 //connect to products.js
 let myProduct = require('./products');
 
 //middleware funct
 app.use((req, res, next) => {
-    console.log("In comes a request to: " + req.url);
-    next();
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
 });
 
 app.get("/", (req, res) => {
-    res.send("Welcome to out homepage");
+  res.send("Welcome to our homepage!");
 });
 
 app.get("/collections/products", (req, res) => {
-    res.json(myProduct);
+  res.json(myProduct);
 });
 
 app.post("/collections/products", (req, res) => {
-    const newProduct = req.body;
+  const newProduct = req.body;
 
-    // Optional: add a unique id if not provided
-    if (!newProduct.id) {
-        newProduct.id = myProduct.length
-            ? myProduct[myProduct.length - 1].id + 1
-            : 1001;
-    }
+  // Add a unique ID if not provided
+  if (!newProduct.id) {
+    newProduct.id = myProduct.length
+      ? myProduct[myProduct.length - 1].id + 1
+      : 1001;
+  }
 
-    myProduct.push(newProduct);
-    res.status(201).json({
-        message: "Product added successfully",
-        product: newProduct
-    });
+  myProduct.push(newProduct);
+  res.status(201).json({
+    message: "Product added successfully",
+    product: newProduct,
+  });
 });
 
-app.put("/", function(req, res) {
-    res.send("Ok, let's change an element");
+app.put("/collections/products/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = myProduct.findIndex((p) => p.id === id);
+
+  if (index !== -1) {
+    myProduct[index] = { ...myProduct[index], ...req.body };
+    res.json({ message: "Product updated", product: myProduct[index] });
+  } else {
+    res.status(404).json({ message: "Product not found" });
+  }
 });
 
 app.delete("/collections/products/:id", (req, res) => {
-    const id = parseInt(req.params.id);
-    const index = myProduct.findIndex(p => p.id === id);
-    if (index !== -1) {
-        const deleted = myProduct.splice(index, 1);
-        res.json({ message: "Product deleted", deleted });
-    } else {
-        res.status(404).json({ message: "Product not found" });
-    }
+  const id = parseInt(req.params.id);
+  const index = myProduct.findIndex((p) => p.id === id);
+
+  if (index !== -1) {
+    const deleted = myProduct.splice(index, 1);
+    res.json({ message: "Product deleted", deleted });
+  } else {
+    res.status(404).json({ message: "Product not found" });
+  }
+});
+
+app.get("/search", (req, res) => {
+  const query = req.query.query;
+
+  if (!query) {
+    return res.status(400).json({ message: "Search query is missing" });
+  }
+
+  const searchTerm = query.toLowerCase();
+
+  const results = myProduct.filter((p) => {
+    return (
+      p.title.toLowerCase().includes(searchTerm) ||
+      p.location.toLowerCase().includes(searchTerm) ||
+      p.price.toString().includes(searchTerm) ||
+      p.availableInventory.toString().includes(searchTerm)
+    );
+  });
+
+  res.json(results);
 });
 
 app.use((req, res) => {
-    res.status(404).send("Resource not found");
+  res.status(404).send("Resource not found");
 }); //always at the end
 
 //start server
 app.listen(3000, () => {
-    console.log('Server is running on port 3000');
+  console.log("✅ Server is running on port 3000");
 });
