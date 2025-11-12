@@ -99,6 +99,9 @@ app.use((req, res) => {
 }); //always at the end
 
 //start server
-app.listen(3000, () => {
-  console.log("✅ Server is running on port 3000");
+const PORT = 3000;
+
+app.listen(PORT, () => {
+  console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`🌐 Open your webpage: http://localhost:${PORT}`);
 });
