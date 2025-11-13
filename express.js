@@ -1,6 +1,7 @@
 var express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 
 const PropertiesReader = require("properties-reader");
 let propertiesPath = path.resolve(__dirname, "./dbconnection.properties");
@@ -62,6 +63,20 @@ app.get("/collections/products", (req, res) => {
   console.log(myProduct); // log the full array
   res.json(myProduct);
 });
+
+async function updateProductsJSON(collectionName) {
+  try {
+    const products = await db1.collection(collectionName).find({}).toArray();
+    fs.writeFileSync(
+      path.join(__dirname, "products.json"),
+      JSON.stringify(products, null, 2),
+      "utf-8"
+    );
+    console.log(`✅ Synced products.json with latest changes in '${collectionName}'.`);
+  } catch (err) {
+    console.error(`❌ Error syncing products.json for '${collectionName}':`, err);
+  }
+}
 
 app.param('collectionName', (req, res, next, collectionName) => { 
     req.collection = db1.collection(collectionName);
@@ -127,6 +142,7 @@ app.post('/collections/:collectionName', async function(req, res, next) {
 
     //for debugging purposes, log results into console to check
     console.log('Inserted document:', results);
+    await updateProductsJSON(req.params.collectionName);
 
     //return the result to frontend
     res.json(results);
@@ -146,6 +162,7 @@ app.delete('/collections/:collectionName/:id', async function(req, res, next) {
 
     //log results into console log for debugging
     console.log('Delete operation result:', result);
+    await updateProductsJSON(req.params.collectionName);
 
     //indicates number of documents deleted by MongoDB - deleteOne or deleteMany op.
     //checks if exactly one document was deleted, if yess, op successful
@@ -168,6 +185,7 @@ app.put('/collections/:collectionName/:id', async function (req, res, next) {
 
     //log result into console to check
     console.log('Update operation result:', result);
+    await updateProductsJSON(req.params.collectionName);
 
     //return result to frontend - object updated and saved in mongodb
     res.json((result.matchedCount === 1) ? {msg: "success"} : {msg: "error"});
@@ -177,25 +195,27 @@ app.put('/collections/:collectionName/:id', async function (req, res, next) {
   }
 });
 
-app.get("/search", (req, res) => {
+app.get("/search", async function(req, res, next) {
   const query = req.query.query;
+  if (!query) return res.status(400).json({ message: "Search query is missing" });
 
-  if (!query) {
-    return res.status(400).json({ message: "Search query is missing" });
+  try {
+    const regex = new RegExp(query, "i"); // case-insensitive
+    const results = await db1.collection("Products").find({
+      $or: [
+        { title: regex },
+        { location: regex },
+        { description: regex }
+      ]
+    }).toArray();
+    
+    console.log(`Search for "${query}" returned:`);
+    console.log(JSON.stringify(results, null, 4)); // 4 spaces indentation
+    res.json(results);
+  } catch (err) {
+    console.error("Search error:", err);
+    next(err);
   }
-
-  const searchTerm = query.toLowerCase();
-
-  const results = myProduct.filter((p) => {
-    return (
-      p.title.toLowerCase().includes(searchTerm) ||
-      p.location.toLowerCase().includes(searchTerm) ||
-      p.price.toString().includes(searchTerm) ||
-      p.availableInventory.toString().includes(searchTerm)
-    );
-  });
-
-  res.json(results);
 });
 
 app.use((req, res) => {
