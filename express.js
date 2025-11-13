@@ -151,7 +151,9 @@ app.post('/collections/:collectionName', async function(req, res, next) {
 
     //for debugging purposes, log results into console to check
     console.log('Inserted document:', results);
-    await updateProductsJSON(req.params.collectionName);
+
+    // Update products.json in background
+    updateProductsJSON(req.params.collectionName);
 
     //return the result to frontend
     res.json(results);
@@ -171,7 +173,9 @@ app.delete('/collections/:collectionName/:id', async function(req, res, next) {
 
     //log results into console log for debugging
     console.log('Delete operation result:', result);
-    await updateProductsJSON(req.params.collectionName);
+
+    // Update products.json in background
+    updateProductsJSON(req.params.collectionName);
 
     //indicates number of documents deleted by MongoDB - deleteOne or deleteMany op.
     //checks if exactly one document was deleted, if yess, op successful
@@ -194,7 +198,9 @@ app.put('/collections/:collectionName/:id', async function (req, res, next) {
 
     //log result into console to check
     console.log('Update operation result:', result);
-    await updateProductsJSON(req.params.collectionName);
+
+    // Update products.json in background
+    updateProductsJSON(req.params.collectionName);
 
     //return result to frontend - object updated and saved in mongodb
     res.json((result.matchedCount === 1) ? {msg: "success"} : {msg: "error"});
