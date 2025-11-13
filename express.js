@@ -13,7 +13,7 @@ const dbUser = properties.get('db.user');
 const dbPassword = properties.get('db.password');
 const dbParams = properties.get('db.params');
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `${dbPrefix}${dbUser}:${dbPassword}${dbHost}${dbParams}`;
 const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
 
@@ -70,7 +70,7 @@ app.param('collectionName', (req, res, next, collectionName) => {
 });
 
 // Fetch all documents from a MongoDB collection
-app.get('/collections/:collectionName', async (req, res, next) => {
+app.get('/collections/:collectionName', async function(req, res, next) {
   try {
     console.log('Received request for collection:', req.params.collectionName);
     console.log('Accessing collection: ', req.collection.collectionName);
@@ -82,7 +82,7 @@ app.get('/collections/:collectionName', async (req, res, next) => {
 });
 
 // Fetch with limit & sort
-app.get('/collections1/:collectionName', async (req, res, next) => {
+app.get('/collections1/:collectionName', async function(req, res, next) {
   try {
     const results = await req.collection.find({}, { limit: 3, sort: { price: -1 } }).toArray();
     console.log('Accessing collection: ', req.collection.collectionName);
@@ -117,44 +117,63 @@ app.get('/collections/:collectionName/:max/:sortAspect/:sortAscDesc', async func
   }
 });
 
-app.post("/collections/products", (req, res) => {
-  const newProduct = req.body;
+app.post('/collections/:collectionName', async function(req, res, next) {
+  try {
+    //validate req.body
+    console.log('Received request to insert document:', req.body);
 
-  // Add a unique ID if not provided
-  if (!newProduct.id) {
-    newProduct.id = myProduct.length
-      ? myProduct[myProduct.length - 1].id + 1
-      : 1001;
-  }
+    //insert a new document
+    const results = await req.collection.insertOne(req.body);
 
-  myProduct.push(newProduct);
-  res.status(201).json({
-    message: "Product added successfully",
-    product: newProduct,
-  });
-});
+    //for debugging purposes, log results into console to check
+    console.log('Inserted document:', results);
 
-app.put("/collections/products/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = myProduct.findIndex((p) => p.id === id);
-
-  if (index !== -1) {
-    myProduct[index] = { ...myProduct[index], ...req.body };
-    res.json({ message: "Product updated", product: myProduct[index] });
-  } else {
-    res.status(404).json({ message: "Product not found" });
+    //return the result to frontend
+    res.json(results);
+  } catch (err) {
+    console.error('Error inserting document:', err.message);
+    next(err); //pass the error to the middleware or error handler in the app
   }
 });
 
-app.delete("/collections/products/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = myProduct.findIndex((p) => p.id === id);
+app.delete('/collections/:collectionName/:id', async function(req, res, next) {
+  try {
+    //for debugging purposes
+    console.log('Received request to delete document with id:', req.params.id);
 
-  if (index !== -1) {
-    const deleted = myProduct.splice(index, 1);
-    res.json({ message: "Product deleted", deleted });
-  } else {
-    res.status(404).json({ message: "Product not found" });
+    //delete a single document by ID
+    const result = await req.collection.deleteOne({ _id: new ObjectId(req.params.id) });
+
+    //log results into console log for debugging
+    console.log('Delete operation result:', result);
+
+    //indicates number of documents deleted by MongoDB - deleteOne or deleteMany op.
+    //checks if exactly one document was deleted, if yess, op successful
+    res.json((result.deletedCount === 1) ? {msg: "success"} : {msg: "error"});
+  } catch (err) {
+    console.error('Error deleting document:', err.message);
+    next(err); //pass the error to the middleware or error handler in the app
+  }
+});
+
+app.put('/collections/:collectionName/:id', async function (req, res, next) {
+  try {
+    //for debugging
+    console.log('Received request to update document with id:', req.params.id);
+
+    //update single document by ID
+    const result = await req.collection.updateOne({ _id: new ObjectId(req.params.id)},
+    {$set: req.body},
+    {safe: true, multi: false});
+
+    //log result into console to check
+    console.log('Update operation result:', result);
+
+    //return result to frontend - object updated and saved in mongodb
+    res.json((result.matchedCount === 1) ? {msg: "success"} : {msg: "error"});
+  } catch (err) {
+    console.error('Error updating document:', err.message);
+    next(err);
   }
 });
 
