@@ -45,9 +45,6 @@ app.use(express.json());
 
 app.use("/Assets", express.static(path.join(__dirname, "Assets")));
 
-//connect to products.js
-let myProduct = require('./products');
-
 //middleware funct
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -58,10 +55,24 @@ app.get("/", (req, res) => {
   res.send("Welcome to our homepage!");
 });
 
-app.get("/collections/products", (req, res) => {
-  console.log("Returning static products data:");
-  console.log(myProduct); // log the full array
-  res.json(myProduct);
+app.get("/collections/products", async (req, res) => {
+  try {
+    const products = await db1.collection("Products").find({}).toArray();
+    const mapped = products.map(p => ({
+      id: p.id,
+      title: p.title || p.name,
+      description: p.description || p.details || "",
+      location: p.location || p.place,
+      price: p.price || p.cost,
+      availableInventory: p.availableInventory || p.stock || 0,
+      image: p.image || "Assets/default.jpg",
+      rating: p.rating || 0
+    }));
+    res.json(mapped);
+  } catch (err) {
+    console.error("Error fetching products:", err);
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
 });
 
 async function updateProductsJSON(collectionName) {
