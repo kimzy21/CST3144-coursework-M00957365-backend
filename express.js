@@ -65,17 +65,26 @@ app.get("/collections/products", (req, res) => {
 });
 
 async function updateProductsJSON(collectionName) {
-  try {
-    const products = await db1.collection(collectionName).find({}).toArray();
-    fs.writeFileSync(
-      path.join(__dirname, "products.json"),
-      JSON.stringify(products, null, 2),
-      "utf-8"
-    );
-    console.log(`✅ Synced products.json with latest changes in '${collectionName}'.`);
-  } catch (err) {
-    console.error(`❌ Error syncing products.json for '${collectionName}':`, err);
-  }
+    try {
+        // Fetch all products from MongoDB
+        const products = await db1.collection(collectionName).find({}).toArray();
+
+        // Absolute path to the external products.json
+        const dataFile = path.resolve("./data/products.json");
+
+        // Ensure the folder exists
+        const dataDir = path.dirname(dataFile);
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+
+        // Write products to JSON file
+        fs.writeFileSync(dataFile, JSON.stringify(products, null, 2), "utf-8");
+
+        console.log(`✅ Synced products.json with latest changes in '${collectionName}'.`);
+    } catch (err) {
+        console.error(`❌ Error syncing products.json for '${collectionName}':`, err);
+    }
 }
 
 app.param('collectionName', (req, res, next, collectionName) => { 
