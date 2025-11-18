@@ -244,6 +244,90 @@ app.get("/search", async function(req, res, next) {
   }
 });
 
+app.post("/order/start", async function(req, res, next) {
+  try {
+    const newOrder = {
+      status: "pending",
+      cart: [],
+      firstName: "",
+      lastName: "",
+      phone: "",
+      method: "",
+      gift: "",
+      createdAt: new Date ()
+    };
+    const result = await db1.collection("Orders").insertOne(newOrder);
+    res.json({
+      orderId: result.insertedId,
+      message: "Order started"
+    });
+  } catch (err) {
+    console.error("Error creating order:", err);
+    next(err);
+  }
+});
+
+app.put("/order/:id/cart", async function(req, res, next) {
+  try {
+    const orderId = new ObjectId(req.params.id);
+    const newCart = req.body.cart;
+
+    const result = await db1.collection("Orders").updateOne(
+      { _id: orderId },
+      { $set: { cart: newCart }}
+    );
+    res.json({ message: "Cart updated" });
+  } catch (err) {
+    console.error("Error updating cart:", err);
+    next (err);
+  }
+});
+
+app.delete("/order/:id", async function(req, res, next) {
+  try {
+    const orderId = new ObjectId(rq.params.id);
+    await db1.collection("Orders").deleteOne({ _id: orderId });
+    res.json({ message: "Order Cancelled"});
+  } catch (err) {
+    console.error("Error deleting order:", err);
+    next(err);
+  }
+});
+
+app.post("/order/:id/submit", async function (req, res, next) {
+  try {
+    const orderId = new ObjectId(req.params.id);
+    const orderData = req.body;
+
+    //update order details
+    await db1.collection("Orders").updateOne(
+      { _id: orderId },
+      {
+        $set: {
+          firstName: orderData.firstName,
+          lastName: orderData.lastName,
+          phone: orderData.phone,
+          gift: orderData.gift,
+          status: "submitted",
+          submittedAt: new Date()
+        }
+      }
+    );
+
+    //decrement product inventory
+    for (let id of orderData.cart) {
+      await db1.collection("Products").updateOne(
+        { id: id },
+        { $inc: { availableInventory: -1 }}
+      );
+    }
+    res.json({ message: "Order submitted successfully!"});
+  } catch (err) {
+    console.error("Error submitting order:", err);
+    next(err);
+  }
+});
+
 app.use((req, res) => {
   res.status(404).send("Resource not found");
 }); //always at the end
@@ -253,5 +337,5 @@ const PORT = 3000;
 
 app.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);
-  console.log(`🌐 Open your webpage: http://localhost:${PORT}`);
+  console.log(`🌐 BrainCart website: http://localhost:${PORT}`);
 });
