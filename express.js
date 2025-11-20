@@ -370,8 +370,11 @@ app.use((req, res) => {
 }); //always at the end
 
 //start server
-const PORT = process.env.PORT || 3000; // fallback for local dev
+const PORT = process.env.PORT || 3000; // Render provides PORT, fallback to 3000 for local
+
 app.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);
+  if (!process.env.PORT) {
+    console.log(`🌐 BrainCart website: http://localhost:${PORT}`);
+  }
 });
-
