@@ -2,9 +2,9 @@
   "name": "cst3144-project",
   "version": "1.0.0",
   "description": "",
-  "main": "CST3144-coursework-M00957365-backend/express.js",
+  "main": "express.js",
   "scripts": {
-    "start": "nodemon CST3144-coursework-M00957365-backend/express.js",
+    "start": "nodemon express.js",
     "dev": "nodemon express.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -21,11 +21,8 @@
     "nodemon": "^3.1.11"
   },
   "nodemonConfig": {
-    "watch": [
-      "CST3144-coursework-M00957365-backend"
-    ],
-    "ignore": [
-      "CST3144 Project/data/*"
-    ]
+    "watch": ["."],
+    "ignore": ["../data/**"],
+    "ext": "js"
   }
 }
