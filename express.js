@@ -370,7 +370,7 @@ app.use((req, res) => {
 }); //always at the end
 
 //start server
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; //Render's port or fallback to 3000 locally
 
 app.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);
