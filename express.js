@@ -100,11 +100,11 @@ async function updateProductsJSON(collectionName) {
 
 async function updateOrdersJSON () {
   try {
-    const orders = await db.collection("Orders").find({}).toArray();
-    const dataFile = path.resolve("./data.orders.json");
+    const orders = await db1.collection("Orders").find({}).toArray();
+    const dataFile = path.resolve("./data/orders.json");
 
     const dataDir = path.dirname(dataFile);
-    if (!fdatasync.existsSync(dataDir)) {
+    if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, {recursive: true});
     }
 
@@ -349,7 +349,7 @@ app.post("/order/:id/submit", async function (req, res, next) {
 
     updateOrdersJSON();
     updateProductsJSON("Products");
-    
+
     res.json({ message: "Order submitted successfully!"});
   } catch (err) {
     console.error("Error submitting order:", err);
