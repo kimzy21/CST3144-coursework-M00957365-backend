@@ -98,6 +98,23 @@ async function updateProductsJSON(collectionName) {
     }
 }
 
+async function updateOrdersJSON () {
+  try {
+    const orders = await db.collection("Orders").find({}).toArray();
+    const dataFile = path.resolve("./data.orders.json");
+
+    const dataDir = path.dirname(dataFile);
+    if (!fdatasync.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, {recursive: true});
+    }
+
+    fs.writeFileSync(dataFile, JSON.stringify(orders, null, 2), "utf-8");
+    console.log("🟢 orders.json synced successfully.");
+  } catch (err) {
+    console.error("🔴 Failed to sync orders.json", err);
+  }
+}
+
 app.param('collectionName', (req, res, next, collectionName) => { 
     req.collection = db1.collection(collectionName);
     console.log('Middleware set collection:', req.collection.collectionName);
@@ -255,6 +272,8 @@ app.post("/order/start", async function(req, res, next) {
       createdAt: new Date ()
     };
     const result = await db1.collection("Orders").insertOne(newOrder);
+    updateOrdersJSON();
+
     res.json({
       orderId: result.insertedId,
       message: "Order started"
@@ -274,6 +293,8 @@ app.put("/order/:id/cart", async function(req, res, next) {
       { _id: orderId },
       { $set: { cart: newCart }}
     );
+
+    updateOrdersJSON();
     res.json({ message: "Cart updated" });
   } catch (err) {
     console.error("Error updating cart:", err);
@@ -285,6 +306,9 @@ app.delete("/order/:id", async function(req, res, next) {
   try {
     const orderId = new ObjectId(req.params.id);
     await db1.collection("Orders").deleteOne({ _id: orderId });
+
+    updateOrdersJSON();
+
     res.json({ message: "Order Cancelled"});
   } catch (err) {
     console.error("Error deleting order:", err);
@@ -322,6 +346,10 @@ app.post("/order/:id/submit", async function (req, res, next) {
         { $inc: { availableInventory: -1 }}
       );
     }
+
+    updateOrdersJSON();
+    updateProductsJSON("Products");
+    
     res.json({ message: "Order submitted successfully!"});
   } catch (err) {
     console.error("Error submitting order:", err);
