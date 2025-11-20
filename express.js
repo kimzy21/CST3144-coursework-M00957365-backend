@@ -1,7 +1,10 @@
+require('dotenv').config();
 var express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const dbPrefix = process.env.DB_PREFIX;
 const dbHost = process.env.DB_HOST;
@@ -10,7 +13,6 @@ const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PASSWORD;
 const dbParams = process.env.DB_PARAMS;
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `${dbPrefix}${dbUser}:${dbPassword}${dbHost}/${dbName}${dbParams}`;
 const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
 
