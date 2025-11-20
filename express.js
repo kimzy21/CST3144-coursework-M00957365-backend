@@ -360,7 +360,7 @@ app.post("/order/:id/submit", async function (req, res, next) {
 });
 
 app.get("/healthz", (req, res) => {
-  res.status(200).send("OK);")
+  res.status(200).send("OK");
 });
 
 app.use((req, res) => {
