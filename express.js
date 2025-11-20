@@ -7,15 +7,15 @@ const PropertiesReader = require("properties-reader");
 let propertiesPath = path.resolve(__dirname, "./dbconnection.properties");
 let properties = PropertiesReader(propertiesPath);
 
-const dbPrefix = properties.get('db.prefix');
-const dbHost = properties.get('db.host');
-const dbName = properties.get('db.name');
-const dbUser = properties.get('db.user');
-const dbPassword = properties.get('db.password');
-const dbParams = properties.get('db.params');
+const dbPrefix = process.env.DB_PREFIX;
+const dbHost = process.env.DB_HOST;
+const dbName = process.env.DB_NAME;
+const dbUser = process.env.DB_USER;
+const dbPassword = process.env.DB_PASSWORD;
+const dbParams = process.env.DB_PARAMS;
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const uri = `${dbPrefix}${dbUser}:${dbPassword}${dbHost}${dbParams}`;
+const url = `${dbPrefix}${dbUser}:${dbPassword}${dbHost}/${dbName}${dbParams}`;
 const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
 
 let db1;
@@ -361,6 +361,10 @@ app.post("/order/:id/submit", async function (req, res, next) {
     console.error("Error submitting order:", err);
     next(err);
   }
+});
+
+app.get("/healthz", (req, res) => {
+  res.status(200).send("Ok);")
 });
 
 app.use((req, res) => {
