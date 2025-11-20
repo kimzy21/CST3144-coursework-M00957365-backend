@@ -252,8 +252,6 @@ app.post("/order/start", async function(req, res, next) {
       firstName: "",
       lastName: "",
       phone: "",
-      method: "",
-      gift: "",
       createdAt: new Date ()
     };
     const result = await db1.collection("Orders").insertOne(newOrder);
@@ -285,7 +283,7 @@ app.put("/order/:id/cart", async function(req, res, next) {
 
 app.delete("/order/:id", async function(req, res, next) {
   try {
-    const orderId = new ObjectId(rq.params.id);
+    const orderId = new ObjectId(req.params.id);
     await db1.collection("Orders").deleteOne({ _id: orderId });
     res.json({ message: "Order Cancelled"});
   } catch (err) {
@@ -295,6 +293,8 @@ app.delete("/order/:id", async function(req, res, next) {
 });
 
 app.post("/order/:id/submit", async function (req, res, next) {
+  console.log("🛒 ORDER DATA RECEIVED:");
+  console.log(JSON.stringify(req.body, null, 2));
   try {
     const orderId = new ObjectId(req.params.id);
     const orderData = req.body;
@@ -304,20 +304,21 @@ app.post("/order/:id/submit", async function (req, res, next) {
       { _id: orderId },
       {
         $set: {
+          status: "submitted",
           firstName: orderData.firstName,
           lastName: orderData.lastName,
           phone: orderData.phone,
-          gift: orderData.gift,
-          status: "submitted",
+          cart: orderData.cart,
+          total: orderData.total,
           submittedAt: new Date()
         }
       }
     );
 
     //decrement product inventory
-    for (let id of orderData.cart) {
+    for (let productId of orderData.cart) {
       await db1.collection("Products").updateOne(
-        { id: id },
+        { id: productId },
         { $inc: { availableInventory: -1 }}
       );
     }

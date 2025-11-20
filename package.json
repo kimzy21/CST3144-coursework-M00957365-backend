@@ -1,0 +1,31 @@
+{
+  "name": "cst3144-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "CST3144-coursework-M00957365-backend/express.js",
+  "scripts": {
+    "start": "nodemon CST3144-coursework-M00957365-backend/express.js",
+    "dev": "nodemon express.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kimberly Alexya Ramasamy",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "fs": "^0.0.1-security",
+    "mongodb": "^7.0.0",
+    "properties-reader": "^2.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "CST3144-coursework-M00957365-backend"
+    ],
+    "ignore": [
+      "CST3144 Project/data/*"
+    ]
+  }
+}
