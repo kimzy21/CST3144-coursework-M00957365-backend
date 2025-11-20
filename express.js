@@ -75,10 +75,10 @@ app.get("/collections/products", async (req, res) => {
   }
 });
 
-async function updateProductsJSON(collectionName) {
+async function updateProductsJSON() {
     try {
         // Fetch all products from MongoDB
-        const products = await db1.collection(collectionName).find({}).toArray();
+        const products = await db1.collection("Products").find({}).toArray();
 
         // Absolute path to the external products.json
         const dataFile = path.resolve("./data/products.json");
@@ -92,9 +92,9 @@ async function updateProductsJSON(collectionName) {
         // Write products to JSON file
         fs.writeFileSync(dataFile, JSON.stringify(products, null, 2), "utf-8");
 
-        console.log(`✅ Synced products.json with latest changes in '${collectionName}'.`);
+        console.log("✅ Synced products.json and Products collection successfully");
     } catch (err) {
-        console.error(`❌ Error syncing products.json for '${collectionName}':`, err);
+        console.error("❌ Error syncing products.json:", err);
     }
 }
 
@@ -109,9 +109,9 @@ async function updateOrdersJSON () {
     }
 
     fs.writeFileSync(dataFile, JSON.stringify(orders, null, 2), "utf-8");
-    console.log("🟢 orders.json synced successfully.");
+    console.log("✅ orders.json and Orders collection synced successfully.");
   } catch (err) {
-    console.error("🔴 Failed to sync orders.json", err);
+    console.error("❌ Failed to sync orders.json", err);
   }
 }
 
@@ -181,7 +181,9 @@ app.post('/collections/:collectionName', async function(req, res, next) {
     console.log('Inserted document:', results);
 
     // Update products.json in background
-    updateProductsJSON(req.params.collectionName);
+    if (req.params.collectionName === "Products") {
+      updateProductsJSON();
+    }
 
     //return the result to frontend
     res.json(results);
@@ -203,7 +205,9 @@ app.delete('/collections/:collectionName/:id', async function(req, res, next) {
     console.log('Delete operation result:', result);
 
     // Update products.json in background
-    updateProductsJSON(req.params.collectionName);
+    if (req.params.collectionName === "Products") {
+      updateProductsJSON();
+    }
 
     //indicates number of documents deleted by MongoDB - deleteOne or deleteMany op.
     //checks if exactly one document was deleted, if yess, op successful
@@ -228,7 +232,9 @@ app.put('/collections/:collectionName/:id', async function (req, res, next) {
     console.log('Update operation result:', result);
 
     // Update products.json in background
-    updateProductsJSON(req.params.collectionName);
+    if (req.params.collectionName === "Products") {
+      updateProductsJSON();
+    }
 
     //return result to frontend - object updated and saved in mongodb
     res.json((result.matchedCount === 1) ? {msg: "success"} : {msg: "error"});
@@ -348,7 +354,7 @@ app.post("/order/:id/submit", async function (req, res, next) {
     }
 
     updateOrdersJSON();
-    updateProductsJSON("Products");
+    updateProductsJSON();
 
     res.json({ message: "Order submitted successfully!"});
   } catch (err) {
