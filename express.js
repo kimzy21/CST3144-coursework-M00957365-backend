@@ -1,11 +1,15 @@
+//load environment var from .env files to avoid hardcoding credentials in code
+//used in industry to keep security best practice.
 require('dotenv').config();
 var express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 
+//native MongoDB driver
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
+//db credentials stored in the .env to avoid exposing passwords in repo
 const dbPrefix = process.env.DB_PREFIX;
 const dbHost = process.env.DB_HOST;
 const dbName = process.env.DB_NAME;
@@ -13,11 +17,19 @@ const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PASSWORD;
 const dbParams = process.env.DB_PARAMS;
 
+//MongoDB connection to URI
+//if dbName is changed for example, the server will connect to another database
+//since code uses db1 = client.db(dbName)
+//all further calls will operate on that db
 const uri = `${dbPrefix}${dbUser}:${dbPassword}${dbHost}/${dbName}${dbParams}`;
+
+//MongoClient with stable API versioning for consistent behavior
 const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
 
 let db1;
 
+//connection to mongodb asynchronously
+//if connection fails, throw error and according message - this can be seen in real time in the backend and terminal
 async function connectDB() {
   try {
     await client.connect();
@@ -32,16 +44,20 @@ connectDB();
 
 let app = express();
 
+//CORS enabled to allow frontend to be hosted elsewhere, ie, github pages to access this API
 app.use(cors());
 
-// Serve frontend folder
+//serving frontend from static HTML from specific folder
+//frontend served here to allow both FE and BE to be deployed from one Render service
 app.use(express.static(path.join(__dirname, "../CST3144-coursework-M00957365")));
 
 
-// Middleware to parse JSON bodies
+//middleware to parse JSON bodies for all routes - essential otherwise data will be sent to the server in the wrong format
+//likely result in error 500
 app.use(express.json());
 
-//to check if an image exists, else static middleware must return an error message
+//to check if an image exists in designated folder, else static middleware must return an error message
+//if removed, express default static handler would return an HTML 404 page instead of a custom error
 app.use("/Assets", (req, res, next) => {
   const fullPath = path.join(__dirname, "Assets", req.path);
 
@@ -51,19 +67,26 @@ app.use("/Assets", (req, res, next) => {
   });
 });
 
-//middleware funct
+//custom middleware funct
+//logs all incoming requests with timestamps
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
+//base test route to test if server works
 app.get("/", (req, res) => {
   res.send("Welcome to our homepage!");
 });
 
+//fetch all products to be displayed on the frontpage of the website
+//this endpoint only retrieves data in the og DB order
 app.get("/collections/products", async (req, res) => {
   try {
     const products = await db1.collection("Products").find({}).toArray();
+
+    //mapping db fields to match with frontend fields
+    //useful when db docs may not contain all same keys
     const mapped = products.map(p => ({
       id: p.id,
       title: p.title || p.name,
@@ -81,29 +104,35 @@ app.get("/collections/products", async (req, res) => {
   }
 });
 
+//json syncs
+//writes mongdb contents to local JSON files for backup/inspection.
+//added as a safety measure and was used during testing to see if backend communicated with db
+//useful for debugging purposes since you can see the changes in real time
+//now after deployment on render.com, we don't see the change but when testing before deployment, you could see the changes live.
 async function updateProductsJSON() {
     try {
-        // Fetch all products from MongoDB
+        //retrieve all products from mongo
         const products = await db1.collection("Products").find({}).toArray();
 
-        // Absolute path to the external products.json
+        //path to the external products.json
         const dataFile = path.resolve("./data/products.json");
 
-        // Ensure the folder exists
+        //make sure the folder exists otherwise create it
         const dataDir = path.dirname(dataFile);
         if (!fs.existsSync(dataDir)) {
             fs.mkdirSync(dataDir, { recursive: true });
         }
 
-        // Write products to JSON file
+        //write products to JSON file - changes could be seen live before deployment
         fs.writeFileSync(dataFile, JSON.stringify(products, null, 2), "utf-8");
 
         console.log("✅ Synced products.json and Products collection successfully");
     } catch (err) {
-        console.error("❌ Error syncing products.json:", err);
+        console.error("❌ Error syncing products.json:", err); //throw error if an issue occurred
     }
 }
 
+//same as the above but it was used to update the orders.json file when an order was started, updated, cancelled or validated
 async function updateOrdersJSON () {
   try {
     const orders = await db1.collection("Orders").find({}).toArray();
@@ -121,13 +150,14 @@ async function updateOrdersJSON () {
   }
 }
 
+//collection handler - middleware allows dynamic URLs like /collections/Products or /collections/Orders
 app.param('collectionName', (req, res, next, collectionName) => { 
     req.collection = db1.collection(collectionName);
     console.log('Middleware set collection:', req.collection.collectionName);
     next();
 });
 
-// Fetch all documents from a MongoDB collection
+//fetch all documents from a mongodb collection
 app.get('/collections/:collectionName', async function(req, res, next) {
   try {
     console.log('Received request for collection:', req.params.collectionName);
@@ -139,42 +169,11 @@ app.get('/collections/:collectionName', async function(req, res, next) {
   }
 });
 
-// Fetch with limit & sort
-app.get('/collections1/:collectionName', async function(req, res, next) {
-  try {
-    const results = await req.collection.find({}, { limit: 3, sort: { price: -1 } }).toArray();
-    console.log('Accessing collection: ', req.collection.collectionName);
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch data' });
-  }
-});
-
-app.get('/collections/:collectionName/:max/:sortAspect/:sortAscDesc', async function(req, res, next){
-  try {
-    let max = parseInt(req.params.max);
-    let sortDirection = req.params.sortAscDesc.toLowerCase() === "desc" ? -1 : 1;
-
-    console.log('Received request for collection:', req.params.collectionName);
-    console.log('Max:', max, 'Sort by:', req.params.sortAspect, 'Direction:', sortDirection);
-
-    // Correct way to fetch with limit and sort
-    const results = await req.collection
-      .find({})
-      .sort({ [req.params.sortAspect]: sortDirection })
-      .limit(max)
-      .toArray();
-
-    console.log('Retrieved docs:', results);
-
-    res.json(results);
-
-  } catch(err) {
-    console.log('Error fetching docs:', err.message);
-    next(err);
-  }
-});
-
+//the below can be used as admin functionality - not included in project
+//the routes allow the admin to create a new order for the catalog
+//update an existing product detail
+//and remove a product from the catalog
+//the routes were kept as template or to further expand the project into a fully functional admin/client website
 app.post('/collections/:collectionName', async function(req, res, next) {
   try {
     //validate req.body
@@ -250,17 +249,29 @@ app.put('/collections/:collectionName/:id', async function (req, res, next) {
   }
 });
 
+//full-text search route
+//went for option B where search in done both in FE and BE
+//allows performance scaling and reduces data sent to FE
 app.get("/search", async function(req, res, next) {
+
+  //extract the search text as query from URL
   const query = req.query.query;
+
+  //if no uery was provided, return error instead - tested with postman
   if (!query) return res.status(400).json({ message: "Search query is missing" });
 
   try {
-    const regex = new RegExp(query, "i"); // case-insensitive
+    const regex = new RegExp(query, "i"); //case-insensitive - allows user to type however they like
+    //if above is removed, the search becomes case-sensitive
+    
+    //perform mongodb search
+    //mongodb filters data on the server -> docs matching what was typed are sent back to vue
+    //efficient for large datasets and avoids heavy computation in the browser
     const results = await db1.collection("Products").find({
       $or: [
-        { title: regex },
-        { location: regex },
-        { description: regex }
+        { title: regex }, //match lesson name
+        { location: regex }, //match location
+        { description: regex } //match description
       ]
     }).toArray();
     
@@ -273,8 +284,10 @@ app.get("/search", async function(req, res, next) {
   }
 });
 
+//create a new order with status pending
 app.post("/order/start", async function(req, res, next) {
   try {
+    //fields initially empty since client hasn't filled the form in checout page
     const newOrder = {
       status: "pending",
       cart: [],
@@ -284,7 +297,7 @@ app.post("/order/start", async function(req, res, next) {
       createdAt: new Date ()
     };
     const result = await db1.collection("Orders").insertOne(newOrder);
-    updateOrdersJSON();
+    updateOrdersJSON(); //creates a new object in the Orders db
 
     res.json({
       orderId: result.insertedId,
@@ -296,6 +309,7 @@ app.post("/order/start", async function(req, res, next) {
   }
 });
 
+//update cart contents of pending order
 app.put("/order/:id/cart", async function(req, res, next) {
   try {
     const orderId = new ObjectId(req.params.id);
@@ -306,7 +320,7 @@ app.put("/order/:id/cart", async function(req, res, next) {
       { $set: { cart: newCart }}
     );
 
-    updateOrdersJSON();
+    updateOrdersJSON(); //calling function that updates cart
     res.json({ message: "Cart updated" });
   } catch (err) {
     console.error("Error updating cart:", err);
@@ -314,12 +328,13 @@ app.put("/order/:id/cart", async function(req, res, next) {
   }
 });
 
+//cancel an order and delete it from database
 app.delete("/order/:id", async function(req, res, next) {
   try {
     const orderId = new ObjectId(req.params.id);
     await db1.collection("Orders").deleteOne({ _id: orderId });
 
-    updateOrdersJSON();
+    updateOrdersJSON(); //calling function that updates the Orders db
 
     res.json({ message: "Order Cancelled"});
   } catch (err) {
@@ -328,6 +343,9 @@ app.delete("/order/:id", async function(req, res, next) {
   }
 });
 
+//submit order
+//decrement product incentory
+//inventory is a shared resource, therefore, db must be updated in backend to prevent errors
 app.post("/order/:id/submit", async function (req, res, next) {
   console.log("🛒 ORDER DATA RECEIVED:");
   console.log(JSON.stringify(req.body, null, 2));
@@ -340,18 +358,19 @@ app.post("/order/:id/submit", async function (req, res, next) {
       { _id: orderId },
       {
         $set: {
-          status: "submitted",
-          firstName: orderData.firstName,
+          status: "submitted", //order status set as submitted
+          firstName: orderData.firstName, //saving inputs from fields to Orders db
           lastName: orderData.lastName,
           phone: orderData.phone,
-          cart: orderData.cart,
-          total: orderData.total,
-          submittedAt: new Date()
+          cart: orderData.cart, //added with product ids
+          total: orderData.total, //total price
+          submittedAt: new Date() //date at which order was made
         }
       }
     );
 
-    //decrement product inventory
+    //decrement product inventory on submitted cart
+    //works if same product was purchased twice - hence, decrements twice
     for (let productId of orderData.cart) {
       await db1.collection("Products").updateOne(
         { id: productId },
@@ -359,6 +378,7 @@ app.post("/order/:id/submit", async function (req, res, next) {
       );
     }
 
+    //calling functions to update the Orders and Products db after successful order
     updateOrdersJSON();
     updateProductsJSON();
 
@@ -369,6 +389,7 @@ app.post("/order/:id/submit", async function (req, res, next) {
   }
 });
 
+//to check endpoint for render uptime monitoring - recommended by website
 app.get("/healthz", (req, res) => {
   res.status(200).send("OK");
 });
