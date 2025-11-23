@@ -104,52 +104,6 @@ app.get("/collections/products", async (req, res) => {
   }
 });
 
-//json syncs
-//writes mongdb contents to local JSON files for backup/inspection.
-//added as a safety measure and was used during testing to see if backend communicated with db
-//useful for debugging purposes since you can see the changes in real time
-//now after deployment on render.com, we don't see the change but when testing before deployment, you could see the changes live.
-async function updateProductsJSON() {
-    try {
-        //retrieve all products from mongo
-        const products = await db1.collection("Products").find({}).toArray();
-
-        //path to the external products.json
-        const dataFile = path.resolve("./data/products.json");
-
-        //make sure the folder exists otherwise create it
-        const dataDir = path.dirname(dataFile);
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
-        }
-
-        //write products to JSON file - changes could be seen live before deployment
-        fs.writeFileSync(dataFile, JSON.stringify(products, null, 2), "utf-8");
-
-        console.log("✅ Synced products.json and Products collection successfully");
-    } catch (err) {
-        console.error("❌ Error syncing products.json:", err); //throw error if an issue occurred
-    }
-}
-
-//same as the above but it was used to update the orders.json file when an order was started, updated, cancelled or validated
-async function updateOrdersJSON () {
-  try {
-    const orders = await db1.collection("Orders").find({}).toArray();
-    const dataFile = path.resolve("./data/orders.json");
-
-    const dataDir = path.dirname(dataFile);
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, {recursive: true});
-    }
-
-    fs.writeFileSync(dataFile, JSON.stringify(orders, null, 2), "utf-8");
-    console.log("✅ orders.json and Orders collection synced successfully.");
-  } catch (err) {
-    console.error("❌ Failed to sync orders.json", err);
-  }
-}
-
 //collection handler - middleware allows dynamic URLs like /collections/Products or /collections/Orders
 app.param('collectionName', (req, res, next, collectionName) => { 
     req.collection = db1.collection(collectionName);
@@ -187,7 +141,6 @@ app.post('/collections/:collectionName', async function(req, res, next) {
 
     // Update products.json in background
     if (req.params.collectionName === "Products") {
-      updateProductsJSON();
     }
 
     //return the result to frontend
@@ -211,7 +164,6 @@ app.delete('/collections/:collectionName/:id', async function(req, res, next) {
 
     // Update products.json in background
     if (req.params.collectionName === "Products") {
-      updateProductsJSON();
     }
 
     //indicates number of documents deleted by MongoDB - deleteOne or deleteMany op.
@@ -238,7 +190,6 @@ app.put('/collections/:collectionName/:id', async function (req, res, next) {
 
     // Update products.json in background
     if (req.params.collectionName === "Products") {
-      updateProductsJSON();
     }
 
     //return result to frontend - object updated and saved in mongodb
@@ -297,7 +248,6 @@ app.post("/order/start", async function(req, res, next) {
       createdAt: new Date ()
     };
     const result = await db1.collection("Orders").insertOne(newOrder);
-    updateOrdersJSON(); //creates a new object in the Orders db
 
     res.json({
       orderId: result.insertedId,
@@ -319,8 +269,6 @@ app.put("/order/:id/cart", async function(req, res, next) {
       { _id: orderId },
       { $set: { cart: newCart }}
     );
-
-    updateOrdersJSON(); //calling function that updates cart
     res.json({ message: "Cart updated" });
   } catch (err) {
     console.error("Error updating cart:", err);
@@ -333,8 +281,6 @@ app.delete("/order/:id", async function(req, res, next) {
   try {
     const orderId = new ObjectId(req.params.id);
     await db1.collection("Orders").deleteOne({ _id: orderId });
-
-    updateOrdersJSON(); //calling function that updates the Orders db
 
     res.json({ message: "Order Cancelled"});
   } catch (err) {
@@ -377,10 +323,6 @@ app.post("/order/:id/submit", async function (req, res, next) {
         { $inc: { availableInventory: -1 }}
       );
     }
-
-    //calling functions to update the Orders and Products db after successful order
-    updateOrdersJSON();
-    updateProductsJSON();
 
     res.json({ message: "Order submitted successfully!"});
   } catch (err) {
