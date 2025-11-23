@@ -41,7 +41,15 @@ app.use(express.static(path.join(__dirname, "../CST3144-coursework-M00957365")))
 // Middleware to parse JSON bodies
 app.use(express.json());
 
-app.use("/Assets", express.static(path.join(__dirname, "Assets")));
+//to check if an image exists, else static middleware must return an error message
+app.use("/Assets", (req, res, next) => {
+  const fullPath = path.join(__dirname, "Assets", req.path);
+
+  fs.access(fullPath, fs.constants.F_OK, (err) => {
+    if (err) return res.status(404).send("Image not found");
+    next();
+  });
+});
 
 //middleware funct
 app.use((req, res, next) => {
