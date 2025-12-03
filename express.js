@@ -332,7 +332,7 @@ app.post("/order/:id/submit", async function (req, res, next) {
 });
 
 //to check endpoint for render uptime monitoring - recommended by website
-app.get("/healthz", (req, res) => {
+app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
 
